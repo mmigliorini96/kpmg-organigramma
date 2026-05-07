@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KPMG Italia — Organigramma Interattivo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#F8F9FA; font-family:'Segoe UI',Arial,sans-serif; }
+
+#header {
+  position:fixed; top:0; left:0; right:0; height:50px; z-index:200;
+  display:flex; align-items:center; gap:14px; padding:0 20px;
+  background:#fff; border-bottom:1px solid #E2E8F0;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+}
+#logo { font-size:15px; font-weight:700; color:#00338D; letter-spacing:.14em; padding:3px 9px; border:2px solid #00338D; line-height:1.4; }
+#hdr-title { font-size:13px; color:#718096; }
+#hdr-actions { margin-left:auto; display:flex; gap:8px; }
+.hbtn {
+  font-size:11px; padding:4px 10px; border:1px solid #CBD5E0;
+  border-radius:5px; background:#F7FAFC; color:#4A5568; cursor:pointer;
+}
+.hbtn:hover { background:#EDF2F7; }
+.htip { font-size:11px; color:#A0AEC0; align-self:center; }
+
+#svg-wrap {
+  position:fixed; top:50px; left:0; right:0; bottom:0;
+  background:#F8F9FA;
+}
+#svg { width:100%; height:100%; cursor:grab; }
+#svg:active { cursor:grabbing; }
+
+.nd { cursor:pointer; }
+.nd:hover .nbg { opacity:.8; }
+.nbg { transition:opacity .15s; fill:#fff; }
+.ntxt { fill:#718096; font-family:'Segoe UI',Arial,sans-serif; }
+.lnk { fill:none; }
+
+#controls {
+  position:fixed; right:18px; bottom:24px; z-index:200;
+  display:flex; flex-direction:column; gap:5px;
+}
+.cbtn {
+  width:32px; height:32px; border:1px solid #CBD5E0;
+  border-radius:6px; background:#fff; color:#4A5568;
+  font-size:17px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 1px 3px rgba(0,0,0,0.08);
+}
+.cbtn:hover { background:#EDF2F7; }
+
+#panel {
+  position:fixed; left:18px; bottom:18px; max-width:280px; z-index:200;
+  padding:12px 15px; background:#fff; border-radius:8px;
+  border:1px solid #E2E8F0; box-shadow:0 2px 12px rgba(0,0,0,0.10);
+  opacity:0; transition:opacity .2s; pointer-events:none;
+}
+#pnl-path { font-size:10px; color:#A0AEC0; margin-bottom:4px; letter-spacing:.02em; }
+#pnl-name { font-size:13px; font-weight:600; color:#1A202C; margin-bottom:5px; }
+#pnl-desc { font-size:11.5px; color:#718096; line-height:1.55; }
+#pnl-sub  { font-size:10.5px; color:#A0AEC0; margin-top:6px; }
+
+#legend {
+  position:fixed; right:18px; top:62px; z-index:200;
+  background:#fff; border:1px solid #E2E8F0; border-radius:8px;
+  padding:10px 12px; box-shadow:0 1px 4px rgba(0,0,0,0.07);
+}
+#legend-title { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:#A0AEC0; margin-bottom:7px; }
+.leg-row { display:flex; align-items:center; gap:7px; margin-bottom:4px; }
+.leg-dot  { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.leg-lbl  { font-size:10.5px; color:#4A5568; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="logo">KPMG</div>
+  <span id="hdr-title">Organigramma Interattivo — KPMG Italia</span>
+  <div id="hdr-actions">
+    <button class="hbtn" id="b-exp">▶▶ Espandi tutto</button>
+    <button class="hbtn" id="b-col">◀◀ Collassa tutto</button>
+    <span class="htip">Click = espandi/collassa &nbsp;|&nbsp; Scroll = zoom &nbsp;|&nbsp; Drag = naviga</span>
+  </div>
+</div>
+
+<div id="svg-wrap">
+  <svg id="svg">
+    <defs>
+      <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+        <circle cx="13" cy="13" r=".9" fill="#CBD5E0" opacity=".5"/>
+      </pattern>
+    </defs>
+    <rect width="600%" height="600%" x="-250%" y="-250%" fill="url(#dots)"/>
+    <g id="g"></g>
+  </svg>
+</div>
+
+<div id="controls">
+  <button class="cbtn" id="b-in"  title="Zoom in">+</button>
+  <button class="cbtn" id="b-out" title="Zoom out">−</button>
+  <button class="cbtn" id="b-rst" title="Reset vista" style="font-size:13px;">⌂</button>
+</div>
+
+<div id="panel">
+  <div id="pnl-path"></div>
+  <div id="pnl-name"></div>
+  <div id="pnl-desc"></div>
+  <div id="pnl-sub"></div>
+</div>
+
+<div id="legend">
+  <div id="legend-title">Entità</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#185FA5"></div><div class="leg-lbl">K1 · Audit &amp; Assurance</div></div>
+  <div class="leg-row"><div class="leg-dot" style="background:#534AB7"></div><div class="leg-lbl">K2 · Tax &amp; Legal</div></div>
+  <div class="leg-row"><div class="leg-dot" style="background:#0F6E56"></div><div class="leg-lbl">K3 · Advisory</div></div>
+  <div class="leg-row"><div class="leg-dot" style="background:#BA7517"></div><div class="leg-lbl">K4 · Fides</div></div>
+  <div class="leg-row"><div class="leg-dot" style="background:#993C1D"></div><div class="leg-lbl">K5 · Nolan Norton</div></div>
+  <div class="leg-row"><div class="leg-dot" style="background:#3B6D11"></div><div class="leg-lbl">K8 · Business Services</div></div>
+  <div class="leg-row"><div class="leg-dot" style="background:#993556"></div><div class="leg-lbl">K11 · Open Platform</div></div>
+</div>
+
+<script>
+/* =====================================================================
+   DATI — QUESTA È LA SEZIONE DA MODIFICARE
+   
+   Ogni nodo ha questa struttura:
+   {
+     id:       "identificativo_unico",      ← NON duplicare mai
+     name:     "SIGLA · Nome per esteso",   ← il " · " separa sigla e nome
+     desc:     "Descrizione per il pannello info",
+     color:    "#CODICECOLORE",             ← ereditato dai figli
+     children: [ ...nodi figli... ]         ← ometti se è un nodo foglia
+   }
+   ===================================================================== */
+
+const DATA = {
+  id:"root", name:"KPMG Italia", sigla:"KPMG",
+  desc:"Network di 7 entità distinte · 7.000+ professionisti · 25 sedi · 8.000+ clienti",
+  color:"#00338D",
+  children:[
+
+    /* ── K1 · AUDIT & ASSURANCE ────────────────────────────────────── */
+    {id:"k1", name:"K1 · Audit & Assurance",
+     desc:"Revisione indipendente dei bilanci · Lead: Francesca Saia",
+     color:"#185FA5",
+     children:[
+      {id:"k1f", name:"FSA · Financial Statement Audit",
+       desc:"Revisione bilanci per clienti industriali (CIM) e finanziari (FS)",
+       color:"#378ADD",
+       children:[
+        {id:"k1aa", name:"AA · Audit & Assurance",        desc:"Revisione contabile indipendente, inclusa verifica ESG nei bilanci di sostenibilità",            color:"#85B7EB"},
+        {id:"k1as", name:"AAS · Accounting Advisory",      desc:"Supporto su temi contabili complessi, principi IAS/IFRS e standard contabili",                  color:"#85B7EB"},
+        {id:"k1dc", name:"DC · Data Solutions",            desc:"Raccolta, pulizia e strutturazione dati contabili prima dell'analisi da parte degli auditor",     color:"#85B7EB"},
+        {id:"k1dg", name:"DG · Digital Assurance",         desc:"Strumenti digitali e AI per rendere il lavoro di audit più veloce e automatizzato",               color:"#85B7EB"},
+        {id:"k1ts", name:"TS · Transaction Services",      desc:"Attestazioni indipendenti per operazioni sui mercati dei capitali (comfort letter, carve-out)",   color:"#85B7EB"},
+        {id:"k1ct", name:"CTR · Cyber & Tech Risk",        desc:"Verifica indipendente dei sistemi informatici e controlli digitali — ruolo di IT Audit",          color:"#85B7EB"}
+       ]},
+      {id:"k1pb", name:"PB · Public Sector",
+       desc:"Revisione contabile di enti pubblici e verifica uso corretto dei fondi PNRR/UE",
+       color:"#378ADD"}
+     ]},
+
+    /* ── K2 · TAX & LEGAL ──────────────────────────────────────────── */
+    {id:"k2", name:"K2 · Tax & Legal",
+     desc:"Consulenza fiscale e legale · Lead: Martina Scaccabarozzi",
+     color:"#534AB7",
+     children:[
+      {id:"k2t", name:"Tax · Fiscalità",
+       desc:"Adempimenti fiscali ordinari e straordinari, nazionali e internazionali",
+       color:"#7F77DD",
+       children:[
+        {id:"k2cd", name:"CD · Custom & Excise Duties",   desc:"Dazi doganali, IVA internazionale e compliance ambientale legata agli scambi",                    color:"#AFA9EC"},
+        {id:"k2fo", name:"FO · Family Office",             desc:"Patrimoni familiari, successioni, passaggi generazionali e pianificazione fiscale internazionale", color:"#AFA9EC"},
+        {id:"k2tf", name:"TF · Financial Services Tax",    desc:"Fiscalità per banche, assicurazioni, fondi di investimento e operatori immobiliari",              color:"#AFA9EC"},
+        {id:"k2ie", name:"IE · Global Mobility Services",  desc:"Fiscalità per dipendenti in espatrio/reimpatrio: dichiarazioni, contributi, permessi",            color:"#AFA9EC"},
+        {id:"k2mt", name:"MT · M&A Tax",                   desc:"Aspetti fiscali di fusioni, acquisizioni, scissioni e riorganizzazioni societarie",                color:"#AFA9EC"},
+        {id:"k2tx", name:"TX · Tax Consulting",            desc:"Dichiarazioni ordinarie, rapporti con Agenzia Entrate, Tax Control Framework",                    color:"#AFA9EC"},
+        {id:"k2tp", name:"TP · Transfer Pricing",          desc:"Prezzi infragruppo tra sedi dello stesso gruppo in Paesi diversi; accordi preventivi APA",        color:"#AFA9EC"},
+        {id:"k2vt", name:"VT · VAT",                       desc:"IVA e imposte indirette, dichiarazioni, fatturazione elettronica e contenzioso",                  color:"#AFA9EC"}
+       ]},
+      {id:"k2l", name:"Legal · Legale",
+       desc:"Supporto legale societario, contrattuale, M&A, PA e compliance normativa",
+       color:"#7F77DD",
+       children:[
+        {id:"k2lg", name:"LG · Legal Services",            desc:"Contrattualistica commerciale e governance societaria ordinaria",                                  color:"#AFA9EC"},
+        {id:"k2ml", name:"ML · M&A Legal",                 desc:"Aspetti legali di fusioni, acquisizioni, cessioni e riorganizzazioni",                            color:"#AFA9EC"},
+        {id:"k2lp", name:"LP · Legal Public",              desc:"Diritto pubblico, appalti, fondi UE, TAR e Consiglio di Stato",                                   color:"#AFA9EC"},
+        {id:"k2lc", name:"LC · Legal Compliance",          desc:"Privacy GDPR, anticorruzione, antiriciclaggio, Modello 231",                                      color:"#AFA9EC"},
+        {id:"k2ip", name:"IP · Intellectual Property",     desc:"Tutela marchi, brevetti, software, AI e blockchain; contratti tecnologici",                       color:"#AFA9EC"}
+       ]}
+     ]},
+
+    /* ── K3 · ADVISORY ─────────────────────────────────────────────── */
+    {id:"k3", name:"K3 · Advisory",
+     desc:"Consulenza per la trasformazione del business su organizzazione, processi e tecnologia",
+     color:"#0F6E56",
+     children:[
+      {id:"k3mc", name:"MC · Management Consulting",
+       desc:"Trasformazione di organizzazione, processi e sistemi aziendali inclusi dati e AI",
+       color:"#1D9E75",
+       children:[
+        {id:"k3ci", name:"BC CIM · Business Consulting CIM",
+         desc:"Trasformazione operativa per aziende industriali e commerciali",
+         color:"#5DCAA5",
+         children:[
+          {id:"k3fp", name:"F&PM · Finance & Perf. Mgmt",   desc:"Pianificazione, budget, forecast e reporting su Oracle EPM, Tagetik, Board — include People & Change", color:"#9FE1CB"},
+          {id:"k3co", name:"CO · Customer & Operations",     desc:"CRM (Microsoft, Salesforce, SAP), supply chain, MES, WMS e ottimizzazione operativa",                  color:"#9FE1CB"}
+         ]},
+        {id:"k3fs", name:"BC FS · Business Consulting FS",
+         desc:"Trasformazione processi core per banche, assicurazioni e società finanziarie",
+         color:"#5DCAA5"},
+        {id:"k3ps", name:"BC PS · Business Consulting PS",
+         desc:"Modernizzazione di enti pubblici, PA locali e strutture sanitarie",
+         color:"#5DCAA5",
+         children:[
+          {id:"k3hc", name:"HC · Healthcare",                desc:"Processi clinici e amministrativi per organizzazioni sanitarie pubbliche e private",                   color:"#9FE1CB"},
+          {id:"k3gi", name:"GI · Government & International", desc:"Trasformazione PA centrali, locali e collaborazione con istituzioni internazionali",                   color:"#9FE1CB"}
+         ]},
+        {id:"k3ep", name:"EPS · Enterprise Platforms",
+         desc:"Implementazione grandi sistemi ERP/CRM: SAP, Oracle, Microsoft, Workday, ServiceNow",
+         color:"#5DCAA5",
+         children:[
+          {id:"k3ec", name:"EC · Enterprise Platform CIM",   desc:"SAP S/4HANA e altri ERP per aziende industriali e commerciali · Sedi: MI TO PD BO RM NA",            color:"#9FE1CB"},
+          {id:"k3ef", name:"EF · Enterprise Platform FS",    desc:"ERP per banche, assicurazioni e istituzioni finanziarie · Sedi: MI TO PD BO RM NA",                   color:"#9FE1CB"},
+          {id:"k3ev", name:"EP · Enterprise Platform PS",    desc:"SAP per enti pubblici e strutture sanitarie · Sedi: MI RM",                                           color:"#9FE1CB"},
+          {id:"k3or", name:"OR · Oracle",                    desc:"ERP e EPM Oracle per Public Sector; ERP Oracle per CIM · Sedi: MI RM NA",                             color:"#9FE1CB"},
+          {id:"k3ms", name:"MS · Microsoft",                 desc:"Dynamics 365, Business Central, Power Platform, Power BI e Copilot · Sedi: MI TO RM",                 color:"#9FE1CB"},
+          {id:"k3sn", name:"SN · ServiceNow",                desc:"Workflow interni, processi IT e service management aziendale · Sedi: MI TO RM",                       color:"#9FE1CB"}
+         ]},
+        {id:"k3lh", name:"LH · Lighthouse",
+         desc:"Centro di eccellenza per dati, AI e automazione intelligente",
+         color:"#5DCAA5",
+         children:[
+          {id:"k3da", name:"DA · Data & Analytics",          desc:"Trasforma i dati aziendali in strumenti di lettura utili al business",                                color:"#9FE1CB"},
+          {id:"k3ia", name:"IA · Intelligent Automation",    desc:"Automazione di attività ripetitive con RPA, low-code e intelligenza artificiale",                     color:"#9FE1CB"}
+         ]}
+       ]},
+      {id:"k3rc", name:"RC · Risk Consulting",
+       desc:"Gestione rischi finanziari, normativi, cyber e di integrità · Lead: Martina Manini",
+       color:"#1D9E75",
+       children:[
+        {id:"k3gr", name:"GR&C · Governance, Risk & Compliance",
+         desc:"Sistemi di controllo interno, governance e conformità normativa",
+         color:"#5DCAA5",
+         children:[
+          {id:"k3ri", name:"RI · Risk Industrial",           desc:"Rischi operativi, normativi ed ESG per aziende non finanziarie",                                     color:"#9FE1CB"},
+          {id:"k3rf", name:"RF · Risk Financial",            desc:"Controlli interni e compliance per banche e assicurazioni",                                           color:"#9FE1CB"},
+          {id:"k3mp", name:"MP · Monitoring Public",         desc:"Monitoraggio, governance e rendicontazione fondi PNRR",                                               color:"#9FE1CB"}
+         ]},
+        {id:"k3rr", name:"RRA · Regulatory & Risk Advisory",
+         desc:"Modelli di rischio finanziario e attuariale per banche, assicurazioni e energia",
+         color:"#5DCAA5",
+         children:[
+          {id:"k3fr", name:"FR · Financial Risk",            desc:"Modelli quantitativi di rischio credito, mercato e liquidità (Basilea IV)",                          color:"#9FE1CB"},
+          {id:"k3fe", name:"FE · Financial Energy",          desc:"Gestione rischi di prezzo energetico per operatori e grandi industriali",                             color:"#9FE1CB"},
+          {id:"k3fk", name:"FK · Actuarial Services",        desc:"Premi e riserve tecniche per compagnie assicurative (Solvency II)",                                  color:"#9FE1CB"}
+         ]},
+        {id:"k3ct", name:"CTR · Cyber & Tech Risk",          desc:"Consulenza strategica su sicurezza informatica, NIS2, DORA, Business Continuity",                    color:"#5DCAA5"},
+        {id:"k3fl", name:"FL · Forensic",
+         desc:"Prevenzione e indagine di frodi, corruzione e comportamenti illeciti",
+         color:"#5DCAA5",
+         children:[
+          {id:"k3f1", name:"Fraud Investigation & AFC",      desc:"Indagini interne su frodi, corruzione e appropriazione indebita; Fraud Risk Management",             color:"#9FE1CB"},
+          {id:"k3f2", name:"Corporate Intelligence & TPR",   desc:"Screening affidabilità di partner, fornitori e clienti prima di collaborazioni",                     color:"#9FE1CB"},
+          {id:"k3f3", name:"Forensic Technology",            desc:"Analisi tracce digitali, evidenze elettroniche ed e-discovery",                                      color:"#9FE1CB"},
+          {id:"k3f4", name:"IP & SAM",                       desc:"Gestione licenze software e tutela della proprietà intellettuale",                                   color:"#9FE1CB"}
+         ]}
+       ]},
+      {id:"k3de", name:"DA · Deal Advisory",
+       desc:"Supporto in operazioni straordinarie: M&A, quotazioni, ristrutturazioni · Lead a.i.: Matteo Pasini",
+       color:"#1D9E75",
+       children:[
+        {id:"k3cf", name:"CF · Corporate Finance",           desc:"Valutazione d'azienda, M&A, raccolta di capitale e strutturazione del debito",                      color:"#5DCAA5"},
+        {id:"k3ts", name:"TS · Transaction Services",        desc:"Financial due diligence pre-accordo su ricavi, costi, debiti e solidità operativa",                 color:"#5DCAA5"},
+        {id:"k3rs", name:"RS · Restructuring",               desc:"Riorganizzazione finanziaria per aziende in crisi: debiti, liquidità, procedure concorsuali",       color:"#5DCAA5"},
+        {id:"k3sk", name:"SK · Deal Transformation",         desc:"Integrazione post-M&A o separazione di business: persone, sistemi, processi",                       color:"#5DCAA5"}
+       ]}
+     ]},
+
+    /* ── K4 · FIDES ────────────────────────────────────────────────── */
+    {id:"k4", name:"K4 · Fides",
+     desc:"Outsourcing di attività amministrative, contabili, fiscali e payroll · Lead a.i.: Matteo Pasini",
+     color:"#BA7517",
+     children:[
+      {id:"k4ac", name:"AC · Accounting", desc:"Contabilità, chiusure, bilanci e adempimenti fiscali ricorrenti in outsourcing", color:"#EF9F27"},
+      {id:"k4pa", name:"PA · Payroll",    desc:"Buste paga, contributi INPS/INAIL, ritenute fiscali e documentazione contrattuale", color:"#EF9F27"}
+     ]},
+
+    /* ── K5 · NOLAN NORTON ─────────────────────────────────────────── */
+    {id:"k5", name:"K5 · Nolan Norton",
+     desc:"Strategia IT e governance tecnologica per CIO e top management · vendor-independent",
+     color:"#993C1D",
+     children:[
+      {id:"k5a", name:"Assessment · Radiografia IT",      desc:"Analisi di processi, persone, sistemi, costi e rischi IT dell'organizzazione",        color:"#D85A30"},
+      {id:"k5b", name:"Benchmarking · Confronto mercato", desc:"Comparazione con aziende simili per dimensione e maturità digitale",                   color:"#D85A30"},
+      {id:"k5c", name:"IT Strategy · Rotta 3-5 anni",    desc:"Direzione strategica, investimenti prioritari e tecnologie da adottare",               color:"#D85A30"},
+      {id:"k5d", name:"Target Operating Model",           desc:"Modello operativo: chi fa cosa, governance, sourcing, budget e roadmap",               color:"#D85A30"},
+      {id:"k5e", name:"Enterprise Architecture",          desc:"Mappa completa di applicazioni, dati e infrastrutture on-premise e cloud",            color:"#D85A30"}
+     ]},
+
+    /* ── K8 · BUSINESS SERVICES ────────────────────────────────────── */
+    {id:"k8", name:"K8 · Business Services",
+     desc:"Funzioni di supporto interno al network · Supervisor: Roberta Rainone",
+     color:"#3B6D11",
+     children:[
+      {id:"k8h", name:"HRT · People",
+       desc:"Intero ciclo di vita del dipendente KPMG: dal recruiting allo sviluppo professionale",
+       color:"#639922",
+       children:[
+        {id:"k8ta", name:"TA · Talent Attraction & EB",       desc:"Recruiting, sourcing, selezione e employer branding",                                  color:"#97C459"},
+        {id:"k8oc", name:"O&C · Operation & Compensation",    desc:"Dimensione contrattuale ed economica del rapporto di lavoro (≠ Payroll)",              color:"#97C459"},
+        {id:"k8hr", name:"HR · HR Management (HRBP)",         desc:"HR Business Partner: seguono aree di business a stretto contatto con i manager",       color:"#97C459"},
+        {id:"k8tm", name:"TM · Talent Management",            desc:"Evoluzione professionale, percorsi di carriera, coaching e programmi di leadership",   color:"#97C459"},
+        {id:"k8sc", name:"SC · Scheduling",                   desc:"Allocazione delle risorse su progetti in base a competenze e disponibilità",           color:"#97C459"},
+        {id:"k8tr", name:"TR · Training",                     desc:"Formazione: onboarding, corsi tecnici, soft skill, e-learning e formazione obbligatoria", color:"#97C459"},
+        {id:"k8id", name:"ID&E · Inclusion, Diversity & Equity", desc:"Analisi dati interni, iniziative di sensibilizzazione e riduzione dei bias",        color:"#97C459"}
+       ]},
+      {id:"k8f", name:"AM · Finance",
+       desc:"Finanza interna KPMG: contabilità, credito, payroll, controllo e liquidità",
+       color:"#639922",
+       children:[
+        {id:"k8ac", name:"ACC · Accounting",         desc:"Contabilità generale, fatture fornitori e chiusura del bilancio interno KPMG",    color:"#97C459"},
+        {id:"k8cr", name:"CR · Credit Management",   desc:"Monitoraggio incassi, solleciti e gestione anomalie sulle fatture emesse",       color:"#97C459"},
+        {id:"k8py", name:"PAY · Payroll",            desc:"Elaborazione stipendi e cedolini interni KPMG (usa i dati contrattualidi O&C)",  color:"#97C459"},
+        {id:"k8ts", name:"TS · Timesheet",           desc:"Registrazione ore lavorate: base per fatturazione, costi e redditività",         color:"#97C459"},
+        {id:"k8pc", name:"P&C · Planning & Control", desc:"Budget, monitoraggio e scostamenti rispetto agli obiettivi aziendali",           color:"#97C459"},
+        {id:"k8tr2",name:"TRE · Treasury",           desc:"Gestione liquidità KPMG e rapporti operativi con le banche",                    color:"#97C459"}
+       ]},
+      {id:"k8i", name:"ITS · IT Services",
+       desc:"Infrastruttura tecnologica interna e sviluppo applicazioni custom",
+       color:"#639922",
+       children:[
+        {id:"k8it", name:"IT · Information Technology", desc:"PC, reti, VPN, cloud, sicurezza accessi e helpdesk utenti",                  color:"#97C459"},
+        {id:"k8sf", name:"SF · Solution Factory",        desc:"Sviluppo di applicazioni personalizzate per le funzioni interne KPMG",       color:"#97C459"}
+       ]},
+      {id:"k8m", name:"MKC · Marketing & Comm.",
+       desc:"Brand KPMG, campagne, comunicazione interna e CSR",
+       color:"#639922",
+       children:[
+        {id:"k8mc", name:"M&C · Marketing & Comm.",      desc:"Brand, campagne e materiali di comunicazione verso clienti e prospect",      color:"#97C459"},
+        {id:"k8ic", name:"IC · Internal Communication",  desc:"Newsletter, intranet, messaggi del management e town hall interni",          color:"#97C459"},
+        {id:"k8cs", name:"CSR · Corporate Social Resp.", desc:"Volontariato, sostenibilità, impatto positivo e reportistica ESG interna",  color:"#97C459"}
+       ]},
+      {id:"k8q", name:"QU · Quality & Risk Mgmt",
+       desc:"Controlli qualità, certificazioni e rischi professionali",
+       color:"#639922",
+       children:[
+        {id:"k8cm", name:"CMS · Certifications",          desc:"Standard internazionali, documentazione processi e audit interni ed esterni",color:"#97C459"},
+        {id:"k8qr", name:"QRM · Quality Risk Mgmt",       desc:"Valutazione rischi su incarichi professionali e conflitti di interesse",    color:"#97C459"},
+        {id:"k8ug", name:"UG · Ufficio Gare",             desc:"Partecipazione a gare pubbliche e procedure competitive private",           color:"#97C459"}
+       ]}
+     ]},
+
+    /* ── K11 · OPEN PLATFORM ───────────────────────────────────────── */
+    {id:"k11", name:"K11 · Open Platform",
+     desc:"Servizi continuativi: AMS, cyber monitoring, fondi pubblici · Supervisor: Melania Mercurio",
+     color:"#993556",
+     children:[
+      {id:"k11e", name:"ERP · ERP Platforms",
+       desc:"Manutenzione evolutiva di sistemi SAP, Oracle, ServiceNow e Microsoft già attivi",
+       color:"#D4537E",
+       children:[
+        {id:"k11cs", name:"CS · AMS SAP",           desc:"Supporto continuativo su sistemi SAP in uso: malfunzionamenti, modifiche, evolutive",             color:"#ED93B1"},
+        {id:"k11af", name:"AF · SAP Tech CIM",       desc:"Sviluppi tecnici SAP (interfacce, estensioni, integrazioni) per clienti industriali",             color:"#ED93B1"},
+        {id:"k11ap", name:"AP · SAP Tech PS",        desc:"Sviluppi tecnici SAP per il settore pubblico",                                                    color:"#ED93B1"},
+        {id:"k11ab", name:"AB · AMS & Tech FS",      desc:"SAP per banche e assicurazioni: supporto applicativo e tecnico continuativo",                     color:"#ED93B1"},
+        {id:"k11ca", name:"CA · AMS ServiceNow",     desc:"Manutenzione ed evolutive su piattaforme ServiceNow già attive",                                  color:"#ED93B1"},
+        {id:"k11ct", name:"CT · Microsoft AMS & Tech",desc:"Dynamics 365 e Power Platform già in uso: correzioni, adattamenti, evolutive",                   color:"#ED93B1"}
+       ]},
+      {id:"k11m", name:"ME · AMS MES",               desc:"Funzionamento continuo dei sistemi MES per la produzione manifatturiera",                          color:"#D4537E"},
+      {id:"k11o", name:"OA · Oracle EPM AMS & Tech", desc:"Supporto quotidiano ai sistemi Oracle EPM per Finance e Controllo di Gestione",                    color:"#D4537E"},
+      {id:"k11s", name:"SR · Cyber & Tech Risk",     desc:"Monitoraggio continuo sicurezza informatica, gestione incidenti e formazione",                     color:"#D4537E"},
+      {id:"k11i", name:"IH · IDD Hub",               desc:"Screening sistematici sull'affidabilità di partner, fornitori e clienti",                          color:"#D4537E"},
+      {id:"k11p", name:"PM · PS Hub Consulting",     desc:"Gestione operativa continuativa di grandi progetti pubblici (PNRR, sanità, PA)",                   color:"#D4537E"},
+      {id:"k11r", name:"PR · PS Hub Risk",           desc:"Verifica ricorrente della rendicontazione dei fondi pubblici europei e nazionali",                  color:"#D4537E"},
+      {id:"k11h", name:"PH · Private Sector Hub",    desc:"Supporto ad aziende private per accesso a bandi, incentivi e finanziamenti pubblici",              color:"#D4537E"},
+      {id:"k11b", name:"BM · Benchmarking Analysis", desc:"Analisi comparative di mercato ricorrenti a supporto del Transfer Pricing (K2)",                   color:"#D4537E"},
+      {id:"k11g", name:"GM · Global Mobility Analysis",desc:"Adempimenti fiscali operativi per lavoratori in mobilità internazionale",                        color:"#D4537E"}
+     ]}
+
+  ] /* fine children di KPMG Italia */
+}; /* fine DATA — non eliminare questa riga */
+
+/* =====================================================================
+   MOTORE D3 — NON MODIFICARE DA QUI IN POI
+   ===================================================================== */
+const NW=206, NH=50, DUR=500;
+const svg=d3.select("#svg"), g=d3.select("#g");
+function GW(){return svg.node().clientWidth;}
+function GH(){return svg.node().clientHeight;}
+
+const zoom=d3.zoom().scaleExtent([0.06,3]).on("zoom",e=>g.attr("transform",e.transform));
+svg.call(zoom).on("dblclick.zoom",null);
+
+const tree=d3.tree().nodeSize([NH+14,NW+70]);
+const root=d3.hierarchy(DATA);
+root.x0=0; root.y0=0;
+
+function collapse(d){if(d.children){d._children=d.children;d._children.forEach(collapse);d.children=null;}}
+root.children.forEach(collapse);
+
+let uid=0;
+function update(src){
+  tree(root);
+  const nodes=root.descendants(), links=root.links();
+
+  const lk=g.selectAll("path.lnk").data(links,d=>d.target.data.id);
+  const lkE=lk.enter().insert("path","g.nd").attr("class","lnk")
+    .attr("stroke-opacity",.2).attr("stroke-width",1.5)
+    .attr("d",()=>hcurve([src.y0+NW,src.x0],[src.y0+NW,src.x0]));
+  lkE.merge(lk).attr("stroke",d=>d.source.data.color)
+    .transition().duration(DUR).ease(d3.easeCubicInOut)
+    .attr("d",d=>hcurve([d.source.y+NW,d.source.x],[d.target.y,d.target.x]));
+  lk.exit().transition().duration(DUR).ease(d3.easeCubicInOut)
+    .attr("d",()=>hcurve([src.y+NW,src.x],[src.y+NW,src.x])).remove();
+
+  const nd=g.selectAll("g.nd").data(nodes,d=>d.data.id||(d.data.id="u"+(++uid)));
+  const ndE=nd.enter().append("g").attr("class","nd")
+    .attr("transform",`translate(${src.y0},${src.x0})`).attr("opacity",0)
+    .on("click",(e,d)=>{e.stopPropagation();toggle(d);})
+    .on("mouseenter",(e,d)=>showP(d))
+    .on("mouseleave",hideP);
+
+  ndE.append("clipPath").attr("id",d=>"cp"+d.data.id)
+    .append("rect").attr("x",0).attr("y",-NH/2).attr("width",NW).attr("height",NH).attr("rx",7);
+
+  const ig=ndE.append("g").attr("clip-path",d=>`url(#cp${d.data.id})`);
+  ig.append("rect").attr("class",d=>d.depth===0?"":"nbg")
+    .attr("x",0).attr("y",-NH/2).attr("width",NW).attr("height",NH)
+    .attr("fill",d=>d.depth===0?d.data.color:"#fff");
+  ig.filter(d=>d.depth>0).append("rect")
+    .attr("x",0).attr("y",-NH/2).attr("width",6).attr("height",NH)
+    .attr("fill",d=>d.data.color);
+
+  ndE.filter(d=>d.depth>0).append("rect")
+    .attr("x",0).attr("y",-NH/2).attr("width",NW).attr("height",NH).attr("rx",7)
+    .attr("fill","none").attr("stroke",d=>d.data.color).attr("stroke-width",1.5).attr("stroke-opacity",.3);
+
+  ndE.append("text")
+    .attr("x",d=>d.depth===0?NW/2:17).attr("y",d=>d.depth===0?0:-7)
+    .attr("dominant-baseline",d=>d.depth===0?"middle":"auto")
+    .attr("text-anchor",d=>d.depth===0?"middle":"start")
+    .attr("fill",d=>d.depth===0?"#fff":d.data.color)
+    .attr("font-size",d=>d.depth<=1?"11.5px":"10.5px").attr("font-weight",600)
+    .attr("font-family","Segoe UI,Arial,sans-serif").attr("pointer-events","none")
+    .text(d=>sg(d.data.name));
+
+  ndE.filter(d=>d.depth>0).append("text")
+    .attr("x",17).attr("y",9).attr("class","ntxt")
+    .attr("font-size",d=>d.depth===1?"10.5px":"10px").attr("font-weight",400)
+    .attr("font-family","Segoe UI,Arial,sans-serif").attr("pointer-events","none")
+    .text(d=>tr(fn(d.data.name),24));
+
+  ndE.append("text").attr("class","ind")
+    .attr("x",NW-13).attr("y",1).attr("dominant-baseline","middle")
+    .attr("text-anchor","middle").attr("font-size","13px").attr("font-weight",300)
+    .attr("font-family","Segoe UI,Arial,sans-serif").attr("pointer-events","none").attr("opacity",.5);
+
+  const ndM=ndE.merge(nd);
+  ndM.transition().duration(DUR).ease(d3.easeCubicInOut)
+    .attr("transform",d=>`translate(${d.y},${d.x})`).attr("opacity",1);
+  ndM.select(".ind")
+    .attr("fill",d=>d.data.color||"#888")
+    .attr("opacity",d=>(d.children||d._children)?.55:0)
+    .text(d=>d.children?"−":"+");
+
+  nd.exit().transition().duration(DUR).ease(d3.easeCubicInOut)
+    .attr("transform",`translate(${src.y},${src.x})`).attr("opacity",0).remove();
+  nodes.forEach(d=>{d.x0=d.x;d.y0=d.y;});
+}
+
+function hcurve([x1,y1],[x2,y2]){return d3.linkHorizontal()({source:[x1,y1],target:[x2,y2]});}
+function sg(n){const i=n.indexOf(" · ");return i>-1?n.substring(0,i):n;}
+function fn(n){const i=n.indexOf(" · ");return i>-1?n.substring(i+3):"";}
+function tr(s,l){return s.length>l?s.substring(0,l-1)+"…":s;}
+
+function toggle(d){
+  if(d.children){d._children=d.children;d.children=null;}
+  else{d.children=d._children;d._children=null;}
+  update(d);
+}
+function expandAll(d){if(d._children){d.children=d._children;d._children=null;}if(d.children)d.children.forEach(expandAll);}
+function collapseAll(d){if(d.children){d._children=d.children;d._children.forEach(collapseAll);d.children=null;}}
+
+function showP(d){
+  const path=d.ancestors().reverse().map(a=>sg(a.data.name)).join(" › ");
+  document.getElementById("pnl-path").textContent=path;
+  document.getElementById("pnl-name").textContent=d.data.name;
+  document.getElementById("pnl-desc").textContent=d.data.desc||"—";
+  const k=(d.children||d._children||[]).length;
+  document.getElementById("pnl-sub").textContent=k?`${d.children?"▼ collassa":"▶ espandi"} (${k} sotto-team)`:"";
+  const pnl=document.getElementById("panel");
+  pnl.style.borderColor=d.data.color||"#E2E8F0";
+  pnl.style.opacity="1";
+}
+function hideP(){document.getElementById("panel").style.opacity="0";}
+function resetView(){
+  svg.transition().duration(600).ease(d3.easeCubicInOut)
+    .call(zoom.transform,d3.zoomIdentity.translate(90,GH()/2).scale(0.95));
+}
+
+document.getElementById("b-in").onclick=()=>svg.transition().duration(260).call(zoom.scaleBy,1.4);
+document.getElementById("b-out").onclick=()=>svg.transition().duration(260).call(zoom.scaleBy,.72);
+document.getElementById("b-rst").onclick=resetView;
+document.getElementById("b-exp").onclick=()=>{expandAll(root);update(root);};
+document.getElementById("b-col").onclick=()=>{collapseAll(root);update(root);};
+
+update(root);
+setTimeout(resetView,120);
+</script>
+</body>
+</html>
